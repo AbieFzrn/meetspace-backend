@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { MailerModule, MailerOptions } from '@nestjs-modules/mailer';
 import { MulterModule } from '@nestjs/platform-express';
+import { ScheduleModule } from '@nestjs/schedule';
 
 // Config imports
 import databaseConfig from './config/database.config';
@@ -19,6 +21,24 @@ import { Attendance } from './entities/attendance.entity';
 import { Certificate } from './entities/certificate.entity';
 import { Otp } from './entities/otp.entity';
 
+// Module imports
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { EmailModule } from './modules/email/email.module';
+
+// Guards and Interceptors
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
+import { SessionActivityInterceptor } from './common/interceptors/session-activity.interceptor';
+import { EventsModule } from './modules/events/events.module';
+import { ParticipantsModule } from './modules/participants/participants.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+
+import { AdminModule } from './modules/admin/admin.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
+import { BullModule } from '@nestjs/bull';
+
 @Module({
   imports: [
     // Configuration
@@ -27,6 +47,25 @@ import { Otp } from './entities/otp.entity';
       load: [databaseConfig, jwtConfig, mailConfig, uploadConfig],
       envFilePath: '.env',
     }),
+
+    //import modules
+    EventsModule,
+    ParticipantsModule,
+    UploadsModule,
+    AdminModule,
+    ReportsModule,
+    CertificatesModule,
+
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || '127.0.0.1',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      },
+    }),
+    CertificatesModule,
+
+    // Scheduler
+    ScheduleModule.forRoot(),
 
     // Database
     TypeOrmModule.forRootAsync({
@@ -81,8 +120,28 @@ import { Otp } from './entities/otp.entity';
       },
       inject: [ConfigService],
     }),
+
+    // Feature Modules
+    AuthModule,
+    UsersModule,
+    EmailModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    // Global guards
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    // Global interceptors
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SessionActivityInterceptor,
+    },
+  ],
 })
 export class AppModule { }

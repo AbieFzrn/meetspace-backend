@@ -53,11 +53,11 @@ export class User {
   isEmailVerified: boolean;
 
   @Column({ name: 'last_activity', type: 'timestamp', nullable: true })
-  lastActivity: Date;
+  lastActivity: Date | null;
 
-  @Column({ name: 'session_token', length: 255, nullable: true })
+  @Column({ name: 'session_token', type: 'varchar', length: 255, nullable: true })
   @Exclude()
-  sessionToken: string;
+  sessionToken: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
