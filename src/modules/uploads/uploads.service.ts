@@ -4,8 +4,9 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class UploadsService {
@@ -17,35 +18,35 @@ export class UploadsService {
     }
   }
 
-  getFilePath(filename: string, type: 'flyers' | 'certificates'): string {
+  sanitizeFilename(filename: string): string {
+    return filename.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  }
+
+  getFilePath(filename: string, type: 'flyers' | 'certificates' | 'event-img'): string {
     const uploadPath = this.configService.get<string>('upload.path', './uploads');
     return join(uploadPath, type, filename);
   }
 
-  getFileUrl(filename: string, type: 'flyers' | 'certificates'): string {
+  getFileUrl(filename: string, type: 'flyers' | 'certificates' | 'event-img'): string {
     return `/uploads/${type}/${filename}`;
   }
 
-  saveFile(file: Express.Multer.File, type: 'flyers' | 'certificates'): string {
-    try {
-      const uploadPath = this.configService.get<string>('upload.path', './uploads');
-      const destinationDir = join(uploadPath, type);
-      
-      this.ensureDirectoryExists(destinationDir);
-
-      const filename = `${Date.now()}-${file.originalname}`;
-      const destinationPath = join(destinationDir, filename);
-
-      // Move file from temp location to destination
-      require('fs').writeFileSync(destinationPath, file.buffer);
-
-      return filename;
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to save file');
+  saveFile(file: Express.Multer.File, type: 'flyers' | 'certificates' | 'event-img'): string {
+  try {
+    if (!file || !file.filename) {
+      throw new BadRequestException('No file uploaded');
     }
-  }
 
-  deleteFile(filename: string, type: 'flyers' | 'certificates'): boolean {
+    const filename = file.filename;
+    return filename;
+  } catch (error) {
+    console.error('❌ Failed to save file:', error);
+    throw new InternalServerErrorException('Failed to save file');
+  }
+}
+
+
+  deleteFile(filename: string, type: 'flyers' | 'certificates' | 'event-img'): boolean {
     try {
       const filePath = this.getFilePath(filename, type);
       if (existsSync(filePath)) {
@@ -54,16 +55,17 @@ export class UploadsService {
       }
       return false;
     } catch (error) {
+      console.error('❌ Failed to delete file:', error);
       return false;
     }
   }
 
   validateImageFile(file: Express.Multer.File): void {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     const maxSize = 5 * 1024 * 1024; // 5MB
 
     if (!allowedTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Only JPEG, PNG, and GIF images are allowed');
+      throw new BadRequestException('Only JPEG, PNG, GIF, and WEBP images are allowed');
     }
 
     if (file.size > maxSize) {
@@ -72,7 +74,11 @@ export class UploadsService {
   }
 
   validateDocumentFile(file: Express.Multer.File): void {
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
     const maxSize = 10 * 1024 * 1024; // 10MB
 
     if (!allowedTypes.includes(file.mimetype)) {

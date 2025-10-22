@@ -40,7 +40,7 @@ export class AdminController {
     return this.adminService.listUsers(page, limit);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)  
   @Patch('users/:id/role')
   async updateRole(
     @CurrentUser() admin: User,

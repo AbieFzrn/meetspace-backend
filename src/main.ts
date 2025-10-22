@@ -32,11 +32,12 @@ async function bootstrap() {
   });
 
   // Global prefix
-  app.setGlobalPrefix('api');
+  baseURL: "http://localhost:3000/api"
+
 
   const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
   
-  console.log(`🚀 Application is running on: http://localhost:${port}/api`);
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
 }
 bootstrap();

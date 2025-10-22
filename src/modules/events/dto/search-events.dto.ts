@@ -6,6 +6,7 @@ import {
   Max,
   IsEnum,
   IsDateString,
+  IsBoolean,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
@@ -13,6 +14,8 @@ export enum SortBy {
   DATE = 'date',
   TITLE = 'title',
   CREATED_AT = 'created_at',
+  TOP = 'top', // 🆕 Top event (banyak peserta)
+  NEWEST = 'newest', // 🆕 Event terbaru
 }
 
 export enum SortOrder {
@@ -53,4 +56,26 @@ export class SearchEventsDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  // 🏷️ Filter kategori
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  // 📍 Filter wilayah / region
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  // 💸 Filter event gratis
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true')
+  freeOnly?: boolean;
+
+  // 🎓 Filter event yang punya sertifikat
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true')
+  hasCertificate?: boolean;
 }

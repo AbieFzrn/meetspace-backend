@@ -26,6 +26,9 @@ export class Event {
   @Column({ type: 'text' })
   description: string;
 
+  @Column({ nullable: true })
+  imagePath: string;
+
   @Column({ name: 'event_date', type: 'date' })
   eventDate: string;
 
